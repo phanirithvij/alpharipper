@@ -1,4 +1,3 @@
-import inspect
 import urllib.parse as urlparse
 from urllib.parse import parse_qs
 from urllib.parse import urlencode, urlunparse
@@ -20,13 +19,6 @@ SELECTORS = {
 }
 
 
-def log(*args, **kwargs):
-    # https://stackoverflow.com/a/45796693/8608146
-    # https://stackoverflow.com/a/20372465/8608146
-    cf = inspect.currentframe()
-    print(f"{inspect.stack()[1][1]}:{cf.f_back.f_lineno}", *args, **kwargs)
-
-
 def get_pages(url: str) -> list:
     """
     The list of urls of the pages
@@ -38,9 +30,9 @@ def get_pages(url: str) -> list:
             pgs = get_imgs_pgno(url, pno)
             if not pgs:
                 # if not pgs or pno > 1:
-                log(url, "done")
+                print(url, "done")
                 break
-            log("Found", len(pgs), get_subdomain(url), "items")
+            print("Found", len(pgs), get_subdomain(url), "items")
     else:
         # https://stackoverflow.com/a/7734686/8608146
         parsed = urlparse.urlparse(url)
@@ -53,8 +45,8 @@ def get_pages(url: str) -> list:
         if not pgs:
             print("Invalid url", url)
             return
-        log("found", len(pgs), get_subdomain(url), "items")
-        log(url, "done")
+        print("found", len(pgs), get_subdomain(url), "items")
+        print(url, "done")
 
 
 # https://stackoverflow.com/a/49957974/8608146
@@ -71,9 +63,9 @@ def singular_post(url):
     pic = souped.find("picture")
     # print(souped.select('a > picture > img'))
     if pic is not None and pic.parent.name == "a":
-        log(pic.parent['href'])
+        print(pic.parent['href'])
         return pic.parent['href']
-    log("not found", url)
+    print("not found", url)
 
 
 def get_subdomain(url):
@@ -85,27 +77,27 @@ def get_imgs_pgno(url, pageno, retry=None, param_retry=None):
     params = {'page': pageno}
     url_orig = url
     url = add_params(url, params)
-    # log(url)
+    # print(url)
     try:
         r = requests.get(url)
     except Exception as e:
-        log("Failed, retrying...")
+        print("Failed, retrying...")
         if retry is None:
             retry = 0
         if retry > 3:
-            log(e)
+            print(e)
             return
         return get_imgs_pgno(url_orig, pageno, retry=retry+1)
     parsed = urlparse.urlparse(r.url)
     p_params = parse_qs(parsed.query)
-    # log(p_params, retry, param_retry)
+    # print(p_params, retry, param_retry)
     if 'page' not in p_params:
         # eg, name param was not given by user so server corrected it
         if param_retry is None:
             param_retry = 0
         if param_retry > 0:
             # page is being removed by the server so no next page
-            log("No more pages")
+            print("No more pages")
             return
         url = r.url
         return get_imgs_pgno(url, pageno, param_retry=param_retry+1)
@@ -121,7 +113,7 @@ def get_imgs_pgno(url, pageno, retry=None, param_retry=None):
     if subdomain == "covers":
         if not souped.find("div", {"class": SELECTORS[subdomain]}):
             subdomain = "covers:alt"
-    # log(r.status_code, url,
+    # print(r.status_code, url,
     #     r.url, subdomain, SELECTORS[subdomain])
     for image in souped.find_all("div", {"class": SELECTORS[subdomain]}):
         t_url: str = image.find('img')['src']
