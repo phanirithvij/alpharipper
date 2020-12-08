@@ -18,6 +18,12 @@ SELECTORS = {
     "covers:alt":       "thumb-container",
 }
 
+API_URL = "https://api.alphacoders.com/content/get-download-link"
+FF_URL = "https://static.alphacoders.com/ffc.jpg"
+FORM_HEADERS = {
+    'Content-Type': 'application/x-www-form-urlencoded; charset=UTF-8',
+}
+
 
 def get_pages(url: str) -> list:
     """
@@ -66,7 +72,16 @@ def singular_post(url):
     if pic is not None and pic.parent.name == "a":
         print(pic.parent['href'])
         return pic.parent['href']
-    print("not found", url)
+    # try from the download-button
+    a = souped.find('a', {'class': "download-button"})
+    if not a:
+        print("not found", url)
+        return
+    typx = a['data-type']
+    domid = a['data-id']
+    dom = "https://picfiles.alphacoders.com/{}/{}.{}".format(
+        domid[:3], domid, typx)
+    return dom
 
 
 def get_subdomain(url):
@@ -117,24 +132,27 @@ def get_imgs_pgno(url, pageno, retry=None, param_retry=None):
     # print(r.status_code, url,
     #     r.url, subdomain, SELECTORS[subdomain])
     for image in souped.find_all("div", {"class": SELECTORS[subdomain]}):
-
-        # TODO handle
-        # https://static.alphacoders.com/ffc.jpg
-
         t_url: str = image.find('img')['src']
         if subdomain == "gifs":
             t_url = image.find_all('img')[-1]['src']
-        if t_url == "https://static.alphacoders.com/ffc.jpg":
+        # handle
+        # https://static.alphacoders.com/ffc.jpg
+        if t_url == FF_URL:
             domid = image['id'].split('_')[-1]
             # TODO try family friendly cookies to avoid this request
-            r = requests.get(f"https://pics.alphacoders.com/pictures/view/{}".format(domid))
-            subsup = soup(r.content, "lxml")
-            a = subsup.find('a', {'class':"download-button"})
-            if not a:
-                print("Failed", url)
+            data = {
+                "content_id": domid,
+                "content_type": 'pic',
+            }
+            r = requests.post(API_URL, headers=FORM_HEADERS, data=data)
+            if r.status_code != 200:
+                print("Failed for", url, domid, r.status_code, r.content)
                 continue
-            typx = a['data-type']
-            dom = "https://picfiles.alphacoders.com/{}/{}.{}".format(domid[:3], domid, typx)
+            js = r.json()
+            if js['status'] != 'success':
+                print("Failed for", url, domid, js)
+                continue
+            dom = (js['link'])
         else:
             # remove thumb at the end
             x = t_url.split("/")

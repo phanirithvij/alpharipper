@@ -11,7 +11,8 @@ signal.signal(signal.SIGINT, lambda x, y: sys.exit(0))
 # https://stackoverflow.com/a/51812486/8608146
 
 
-def fetch_or_resume(url, filename, progress=True):
+import re
+def fetch_or_resume(url, filename, progress=True, weak_filename=True):
     with open(filename, 'ab') as file:
         pos = file.tell()
         headers = {}
@@ -19,6 +20,10 @@ def fetch_or_resume(url, filename, progress=True):
             headers['Range'] = f'bytes={pos}-'
         # print('sending request')
         response = requests.get(url, headers=headers, stream=True)
+        if weak_filename:
+            d = response.headers['Content-Disposition']
+            filename = re.findall("filename=(.+)", d)[0]
+            file = open(filename, 'ab')
         # print('got response')
 
         total_size = 0
@@ -40,6 +45,8 @@ def fetch_or_resume(url, filename, progress=True):
                 file.write(data)
             print(filename, "done")
 
+        if weak_filename:
+            file.close()
 
 if __name__ == "__main__":
     print(sys.argv)
