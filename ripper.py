@@ -31,7 +31,8 @@ def get_pages(url: str) -> list:
             if not pgs:
                 # if not pgs or pno > 1:
                 print(url, "done")
-                break
+                return
+            yield pgs
             print("Found", len(pgs), get_subdomain(url), "items")
     else:
         # https://stackoverflow.com/a/7734686/8608146
@@ -47,6 +48,7 @@ def get_pages(url: str) -> list:
             return
         print("found", len(pgs), get_subdomain(url), "items")
         print(url, "done")
+        yield pgs
 
 
 # https://stackoverflow.com/a/49957974/8608146
@@ -61,7 +63,6 @@ def singular_post(url):
     r = requests.get(url)
     souped = soup(r.content, "lxml")
     pic = souped.find("picture")
-    # print(souped.select('a > picture > img'))
     if pic is not None and pic.parent.name == "a":
         print(pic.parent['href'])
         return pic.parent['href']
@@ -116,6 +117,10 @@ def get_imgs_pgno(url, pageno, retry=None, param_retry=None):
     # print(r.status_code, url,
     #     r.url, subdomain, SELECTORS[subdomain])
     for image in souped.find_all("div", {"class": SELECTORS[subdomain]}):
+
+        # TODO handle
+        # https://static.alphacoders.com/ffc.jpg
+
         t_url: str = image.find('img')['src']
         if subdomain == "gifs":
             t_url = image.find_all('img')[-1]['src']
