@@ -124,10 +124,22 @@ def get_imgs_pgno(url, pageno, retry=None, param_retry=None):
         t_url: str = image.find('img')['src']
         if subdomain == "gifs":
             t_url = image.find_all('img')[-1]['src']
-        # remove thumb at the end
-        x = t_url.split("/")
-        dom = ("/".join(x[:-1]))
-        # add the original url
-        dom += f"/{x[-1].split('-')[-1]}"
+        if t_url == "https://static.alphacoders.com/ffc.jpg":
+            domid = image['id'].split('_')[-1]
+            # TODO try family friendly cookies to avoid this request
+            r = requests.get(f"https://pics.alphacoders.com/pictures/view/{}".format(domid))
+            subsup = soup(r.content, "lxml")
+            a = subsup.find('a', {'class':"download-button"})
+            if not a:
+                print("Failed", url)
+                continue
+            typx = a['data-type']
+            dom = "https://picfiles.alphacoders.com/{}/{}.{}".format(domid[:3], domid, typx)
+        else:
+            # remove thumb at the end
+            x = t_url.split("/")
+            dom = ("/".join(x[:-1]))
+            # add the original url
+            dom += f"/{x[-1].split('-')[-1]}"
         urls.append(dom)
     return urls
