@@ -13,34 +13,37 @@ def background(f):
 
     return wrapped
 
+
 @background
 def dl_job(i, url):
     with open(f"progress/progress-{i}", 'a+') as progW:
         with open(f"progress/progress-{i}-failed", 'a+') as progF:
+            data = []
             with open(f"progress/progress-{i}", 'r') as progR:
                 data = progR.readlines()
                 data = [l.strip() for l in data]
-                if url not in data:
-                    dird = Path("downloads/"+get_subdomain(url))
-                    os.makedirs(dird, exist_ok=True)
-                    for x in get_pages(url):
-                        for im in x:
-                            fname = im.split('/')[-1]
-                            fname = str(dird / fname)
-                            if fname not in data:
-                                try:
-                                    fetch_or_resume(im, fname, progress=False)
-                                    progW.write(fname + '\n')
-                                    progW.flush()
-                                except Exception as e:
-                                    print("Failed to download", im, fname)
-                                    progF.write(im + '\n')
-                                    progF.flush()
-                            else:
-                                print("Exists", im, fname)
-                    progW.write(url + '\n')
-                else:
-                    print("Url done", url)
+            if url not in data:
+                dird = Path("downloads/"+get_subdomain(url))
+                os.makedirs(dird, exist_ok=True)
+                for x in get_pages(url):
+                    for im in x:
+                        fname = im.split('/')[-1]
+                        fname = str(dird / fname)
+                        if fname not in data:
+                            try:
+                                fetch_or_resume(im, fname, progress=False)
+                                progW.write(fname + '\n')
+                                progW.flush()
+                            except Exception as e:
+                                print("Failed to download", im, fname)
+                                print(e)
+                                progF.write(im + '\n')
+                                progF.flush()
+                        else:
+                            print("Exists", im, fname)
+                progW.write(url + '\n')
+            else:
+                print("Url done", url)
 
 
 urls = [
@@ -53,10 +56,13 @@ urls = [
     "https://covers.alphacoders.com/by_sub_category/174899"
 ]
 
+
+async def main():
+    listx = [dl_job(i, url) for i, url in enumerate(urls)]
+    await asyncio.gather(*listx)
+
 try:
-    for i, url in enumerate(urls):
-        dl_job(i, url)
-    asyncio.get_event_loop().run_forever()
+    asyncio.get_event_loop().run_until_complete(main())
 except KeyboardInterrupt:
     print("Abrupt shutdown")
     os.exit(-1)

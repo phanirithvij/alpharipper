@@ -1,3 +1,4 @@
+import os
 import signal
 import sys
 
@@ -13,6 +14,8 @@ signal.signal(signal.SIGINT, lambda x, y: sys.exit(0))
 
 import re
 def fetch_or_resume(url, filename, progress=True, weak_filename=True):
+    # print(filename)
+    # sys.exit()
     with open(filename, 'ab') as file:
         pos = file.tell()
         headers = {}
@@ -21,9 +24,15 @@ def fetch_or_resume(url, filename, progress=True, weak_filename=True):
         # print('sending request')
         response = requests.get(url, headers=headers, stream=True)
         if weak_filename:
-            d = response.headers['Content-Disposition']
-            filename = re.findall("filename=(.+)", d)[0]
-            file = open(filename, 'ab')
+            if 'Content-Disposition' in response.headers:
+                old_dir = os.path.dirname(filename)
+                d = response.headers['Content-Disposition']
+                filename = re.findall("filename=(.+)", d)[0]
+                filename = os.path.join(old_dir, filename)
+                file.close()
+                file = open(filename, 'ab')
+            else:
+                weak_filename = False
         # print('got response')
 
         total_size = 0
