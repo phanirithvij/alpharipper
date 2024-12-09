@@ -1,3 +1,7 @@
+# ARCHIVE
+
+Are wallpaper sites even worth it? the bandwidth consumed must be bonkers.
+
 # Ripper
 
 Extract wallpapers links from all aphacoder sites
